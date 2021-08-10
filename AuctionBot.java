@@ -7,8 +7,9 @@ public class AuctionBot
 {
 	public static void main(String[] args) throws LoginException
 	{   
-		JDA jda = JDABuilder.createDefault("Token").build();
-		jda.getPresence().setStatus(OnlineStatus.ONLINE);
-		jda.addEventListener(new MyEventListener());
+		MyEventListener event = new MyEventListener();
+		JDA jda = JDABuilder.createDefault("Token").addEventListeners(event).build();
+		event.populateDrafters();
+		event.run();
 	}
 }

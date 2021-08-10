@@ -2,7 +2,6 @@ import java.util.ArrayList;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
@@ -22,19 +21,14 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	private final int timerTop = 20;
 	private final int budget = 120000;
 	
-	public MyEventListener()
-	{
-		populateDrafters();
-		run();
-	}
-	
 	public void populateDrafters()
 	{	
-		//Add Drafters
+		//Populate drafters here
 		
 		turnUp = true;
 	}
 
+	@Override
 	public void onMessageReceived(MessageReceivedEvent event)
 	{
 		try
