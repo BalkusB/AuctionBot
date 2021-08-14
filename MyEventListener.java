@@ -15,15 +15,17 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	private MessageChannel channel;
 	private int turn = 0;
 	private boolean turnUp;
-	private final int minBid = 5000;
+	private final int minBid = 4000;
 	private final int minPlayers = 7;
-	private final int maxPlayers = 10;
+	private final int maxPlayers = 7;
 	private final int timerTop = 20;
-	private final int budget = 120000;
+	private final int budget = 100000;
+	
+	private String[] admins = {}; //list admin users
 	
 	public void populateDrafters()
 	{	
-		//Populate drafters here
+		//create drafters
 		
 		turnUp = true;
 	}
@@ -63,6 +65,10 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 			{
 				stopNom(event);
 			}
+			if(content.startsWith("!restartAuction"))
+			{
+				restartAuction(event);
+			}
 		}
 		catch(Exception e){e.printStackTrace();}
 	}
@@ -83,6 +89,8 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	{
 		String bidder = event.getAuthor().getName();
 		int index = getIndex(bidder);
+		if(isAdmin(bidder));
+			index = 10;
 		if(timer == -1 && index >= 0)
 		{
 			channel = event.getChannel();
@@ -93,7 +101,7 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	public void skip(MessageReceivedEvent event)
 	{
 		String bidder = event.getAuthor().getName();
-		if(timer == -1 && bidder.equals("Xiph"))
+		if(timer == -1 && isAdmin(bidder))
 		{
 			channel = event.getChannel();
 			advanceOrder();
@@ -106,7 +114,7 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 		if(timer == -1)
 		{
 			String bidder = event.getAuthor().getName();
-			if(bidder.equals(drafters.get(turn).getCap1()) || bidder.equals(drafters.get(turn).getCap2()))
+			if(bidder.equals(drafters.get(turn).getCap1()))
 			{
 				channel = event.getChannel();
 				if(content.contains("@"))
@@ -156,11 +164,22 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	private void stopNom(MessageReceivedEvent event)
 	{
 		String bidder = event.getAuthor().getName();
-		if(timer != -1 && bidder.equals("Xiph"))
+		if(timer != -1 && isAdmin(bidder))
 		{
 			channel = event.getChannel();
 			channel.sendMessage("Stopped").queue();
 			reset();
+		}
+	}
+	
+	private void restartAuction(MessageReceivedEvent event)
+	{
+		String bidder = event.getAuthor().getName();
+		if(timer == -1 && isAdmin(bidder))
+		{
+			channel = event.getChannel();
+			channel.sendMessage("Restarting").queue();
+			restart();
 		}
 	}
 	
@@ -204,7 +223,7 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	public boolean isLegal(int index, int bid)
 	{
 		if(((minPlayers - drafters.get(index).getPlayers() - 1) * minBid) + bid > drafters.get(index).getPoints() 
-				&& drafters.get(index).getPlayers() < maxPlayers)
+				|| drafters.get(index).getPlayers() >= maxPlayers)
 			return false;
 		return true;
 	}
@@ -214,11 +233,19 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 		int i = 0;
 		for(Drafter d: drafters)
 		{
-			if(d.getCap1().equals(s) || d.getCap2().equals(s))
+			if(d.getCap1().equals(s))
 				return i;
 			i++;
 		}
 		return -1;
+	}
+	
+	public boolean isAdmin(String author)
+	{
+		for(int i = 0; i < admins.length; i++)
+			if(admins[i].equals(author))
+				return true;
+		return false;
 	}
 	
 	public void reset()
@@ -227,6 +254,18 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 		nom = "";
 		bid = 0;
 		topBidder = "";
+	}
+	
+	public void restart()
+	{
+		timer = -1;
+		nom = "";
+		bid = 0;
+		topBidder = "";
+		turn = 0;
+		
+		drafters.clear();
+		populateDrafters();
 	}
 	
 	public boolean checkIfOver()
@@ -263,54 +302,56 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	
 	public void run()
 	{
-		if(timer > 0)
+		boolean loop = true;
+		while(loop)
 		{
-			timer--;
-			if(timer == 15)
-				channel.sendMessage("15 Seconds Remaining!").queue();
-			if(timer == 10)
-				channel.sendMessage("10 Seconds Remaining!").queue();
-			if(timer == 5)
-				channel.sendMessage("5 Seconds Remaining!").queue();
-			if(timer == 4)
-				channel.sendMessage("4 Seconds Remaining!").queue();
-			if(timer == 3)
-				channel.sendMessage("3 Seconds Remaining!").queue();
-			if(timer == 2)
-				channel.sendMessage("2 Seconds Remaining!").queue();
-			if(timer == 1)
-				channel.sendMessage("1 Seconds Remaining!").queue();
-			if(timer == 0)
+			if(timer > 0)
 			{
-				int index = getIndex(topBidder);
-				String stringBid = Integer.toString(bid);
-				stringBid = stringBid.replaceAll("500$", ".5k");
-				stringBid = stringBid.replaceAll("000$", "k");
-				
-				channel.sendMessage(nom + " has been sold to " + drafters.get(index).getTeamName() + " for " + stringBid + "!").queue();
-				drafters.get(index).setPoints(drafters.get(index).getPoints() - bid);
-				drafters.get(index).addPlayer(nom);
-				
-				reset();
-				printPoints();
-				if(!checkIfOver())
+				timer--;
+				if(timer == 15)
+					channel.sendMessage("15 Seconds Remaining!").queue();
+				if(timer == 10)
+					channel.sendMessage("10 Seconds Remaining!").queue();
+				if(timer == 5)
+					channel.sendMessage("5 Seconds Remaining!").queue();
+				if(timer == 4)
+					channel.sendMessage("4 Seconds Remaining!").queue();
+				if(timer == 3)
+					channel.sendMessage("3 Seconds Remaining!").queue();
+				if(timer == 2)
+					channel.sendMessage("2 Seconds Remaining!").queue();
+				if(timer == 1)
+					channel.sendMessage("1 Seconds Remaining!").queue();
+				if(timer == 0)
 				{
-					advanceOrder();
-					channel.sendMessage("It is " + drafters.get(turn).getTeamName() + "'s turn to nominate a player!").queue();
+					int index = getIndex(topBidder);
+					String stringBid = Integer.toString(bid);
+					stringBid = stringBid.replaceAll("500$", ".5k");
+					stringBid = stringBid.replaceAll("000$", "k");
+					
+					channel.sendMessage(nom + " has been sold to " + drafters.get(index).getTeamName() + " for " + stringBid + "!").queue();
+					drafters.get(index).setPoints(drafters.get(index).getPoints() - bid);
+					drafters.get(index).addPlayer(nom);
+					
+					reset();
+					printPoints();
+					if(!checkIfOver())
+					{
+						advanceOrder();
+						channel.sendMessage("It is " + drafters.get(turn).getTeamName() + "'s turn to nominate a player!").queue();
+					}
+					
 				}
-				
+			}
+			
+			try 
+			{
+				Thread.sleep(1000);
+			} 
+			catch (InterruptedException e) 
+			{
+				e.printStackTrace();		
 			}
 		}
-		
-		try 
-		{
-			Thread.sleep(1000);
-		} 
-		catch (InterruptedException e) 
-		{
-			e.printStackTrace();		
-		}
-		
-		run();
 	}
 }
