@@ -5,11 +5,11 @@ public class Drafter
 	private int points;
 	private ArrayList<String> players = new ArrayList<String>();
 	private String teamName;
-	private String cap1;
-	public Drafter(String team, String cap, int budget)
+	private String[] caps;
+	public Drafter(String team, String[] caps, int budget)
 	{
 		teamName = team;
-		cap1 = cap;
+		this.caps = caps;
 		points = budget;
 	}
 	public int getPoints() {
@@ -33,10 +33,7 @@ public class Drafter
 	public void setTeamName(String teamName) {
 		this.teamName = teamName;
 	}
-	public String getCap1() {
-		return cap1;
-	}
-	public void setCap1(String cap1) {
-		this.cap1 = cap1;
+	public String[] getCaps() {
+		return caps;
 	}
 }

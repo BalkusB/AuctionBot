@@ -8,24 +8,40 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 public class MyEventListener extends ListenerAdapter implements Runnable
 {
 	private ArrayList<Drafter> drafters = new ArrayList<Drafter>();
-	private String nom;
-	private int timer = -1;
-	private int bid;
-	private String topBidder;
-	private MessageChannel channel;
-	private int turn = 0;
-	private boolean turnUp;
-	private final int minBid = 4000;
-	private final int minPlayers = 7;
-	private final int maxPlayers = 7;
-	private final int timerTop = 20;
-	private final int budget = 100000;
 	
-	private String[] admins = {}; //list admin users
+	//track current player nominated
+	private String nom;
+	
+	//track time left before player sold
+	private int timer = -1;
+	
+	//track current highest bid
+	private int bid;
+	
+	//track uder that is current highest bidder
+	private String topBidder;
+	
+	//track current channel
+	private MessageChannel channel;
+	
+	//track who's turn it is to nominate
+	private int turn = 0;
+	
+	//track direction turn is currently moving
+	private boolean turnUp;
+	
+	//auction modifiable parameters
+	private final int minBid = 5000;
+	private final int minPlayers = 7;
+	private final int maxPlayers = 10;
+	private final int timerTop = 20;
+	private final int budget = 120000;
+	
+	private String[] admins = {};
 	
 	public void populateDrafters()
 	{	
-		//create drafters
+		//Add drafters here
 		
 		turnUp = true;
 	}
@@ -114,7 +130,7 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 		if(timer == -1)
 		{
 			String bidder = event.getAuthor().getName();
-			if(bidder.equals(drafters.get(turn).getCap1()))
+			if(isTeamCap(bidder, turn))
 			{
 				channel = event.getChannel();
 				if(content.contains("@"))
@@ -140,11 +156,14 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 			if(index >= 0)
 			{
 				channel = event.getChannel();
+				
+				//convert "k"s to 1000s
 				String transTemp = content.substring(5);
 				if(transTemp.contains("."))
 					transTemp = transTemp.replaceAll(".5k", "500");
 				transTemp = transTemp.replaceAll("k", "000");
 				int temp = Integer.parseInt(transTemp);
+				
 				if(temp % 500 == 0 && temp > bid && isLegal(index, temp))
 				{
 					bid = temp;
@@ -222,6 +241,7 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	
 	public boolean isLegal(int index, int bid)
 	{
+		//ensure bid leaves enough point to reach minimum players but does not exceed max 
 		if(((minPlayers - drafters.get(index).getPlayers() - 1) * minBid) + bid > drafters.get(index).getPoints() 
 				|| drafters.get(index).getPlayers() >= maxPlayers)
 			return false;
@@ -233,7 +253,7 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 		int i = 0;
 		for(Drafter d: drafters)
 		{
-			if(d.getCap1().equals(s))
+			if(isTeamCap(s, d))
 				return i;
 			i++;
 		}
@@ -244,6 +264,22 @@ public class MyEventListener extends ListenerAdapter implements Runnable
 	{
 		for(int i = 0; i < admins.length; i++)
 			if(admins[i].equals(author))
+				return true;
+		return false;
+	}
+	
+	public boolean isTeamCap(String author, int index)
+	{
+		for(int i = 0; i < drafters.get(index).getCaps().length; i++)
+			if(drafters.get(index).getCaps()[i].equals(author))
+				return true;
+		return false;
+	}
+	
+	public boolean isTeamCap(String author, Drafter d)
+	{
+		for(int i = 0; i < d.getCaps().length; i++)
+			if(d.getCaps()[i].equals(author))
 				return true;
 		return false;
 	}
